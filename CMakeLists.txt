@@ -7,3 +7,4 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_executable(generator generator.cpp)
 add_executable(optional optional.cpp)
+add_executable(thread thread.cpp)

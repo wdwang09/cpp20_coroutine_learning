@@ -10,11 +10,12 @@ namespace self {
 
 struct suspend_always {
   bool await_ready() const noexcept {
-    cout << "A await_ready" << endl;
+    cout << "A await_ready false" << endl;
+    // Suspend itself and run await_suspend().
     return false;
   }
 
-  void await_suspend(std::coroutine_handle<> ch) const noexcept {
+  void await_suspend(std::coroutine_handle<>) const noexcept {
     cout << "A await_suspend" << endl;
   }
 
@@ -23,7 +24,8 @@ struct suspend_always {
 
 struct suspend_never {
   bool await_ready() const noexcept {
-    cout << "N await_ready" << endl;
+    cout << "N await_ready true" << endl;
+    // Don't suspend. Don't run await_suspend(). Run await_resume().
     return true;
   }
 
@@ -79,7 +81,7 @@ struct Generator {
   using handle = std::coroutine_handle<promise_type>;
   void next() {
     cout << "next" << endl;
-    return handle_.resume();
+    handle_.resume();
   }
 
   bool done() {
@@ -118,15 +120,17 @@ struct Generator {
 
 Generator fib() {
   // co_await initial_suspend:
-  // never (continue to run fib());
-  // always (suspend itself and continue to run main());
+  // never (await_ready true) (Don't suspend itself, continue to run fib().)
+  // always (await_ready false) (suspend itself and continue to run main().)
   cout << "fib() begin" << endl;
   int a = 1, b = 1;
   while (a < 5) {
     cout << "fib() before co_yield" << endl;
     co_yield a;
-    // co_await yield_value(a);
+    //  "co_yield a;" is equivalent to "co_await promise.yield_value(a);"
     // co_yield's behavior is user-defined (by yield_value() function).
+    // Because it's a co_await, so yield_value() will return a Awaiter
+    // rather than int.
     // If yield_value(a) return always, suspend itself;
     // else (return never) continue to run fib().
     cout << "fib() after co_yield" << endl;
