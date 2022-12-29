@@ -17,10 +17,7 @@ struct maybe : public std::optional<T> {
   // CLANG (15.0.6) will return a wrong result (std::nullopt).
   // "= default" in CLANG cannot solve this problem.
   ~maybe() {}
-};
 
-template <typename T, typename... Args>
-struct std::coroutine_traits<maybe<T>, Args...> {
   struct promise_type {
     auto initial_suspend() noexcept { return std::suspend_never{}; }
 
@@ -91,6 +88,15 @@ struct std::coroutine_traits<maybe<T>, Args...> {
     maybe<T>* res_{};
   };
 };
+
+/// OR:
+/// https://en.cppreference.com/w/cpp/coroutine/coroutine_traits
+// template <typename T, typename... Args>
+// struct std::coroutine_traits<maybe<T>, Args...> {
+//   struct promise_type {
+//     ...
+//   };
+// };
 
 maybe<int> get_odd(int i) {
   if (i % 2 == 1) {
