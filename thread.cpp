@@ -28,7 +28,7 @@ auto switch_to_new_thread(std::jthread& out) {
       std::jthread& out = *p_out;
       // https://en.cppreference.com/w/cpp/thread/jthread/joinable
       // Checks if the std::jthread object identifies an active thread of
-      // execution. Not joinable: no thread; has been joined
+      // execution. Not joinable: no thread; has been joined; has been detached
       if (out.joinable()) {
         throw std::runtime_error("'out' shouldn't have an active thread.");
       }

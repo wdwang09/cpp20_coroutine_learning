@@ -47,8 +47,7 @@ struct Generator {
   struct promise_type {
     Generator get_return_object() {
       cout << "get_return_object" << endl;
-      return handle::from_promise(
-          *this);  // use implicit constructor to get Generator
+      return Generator(handle::from_promise(*this));
     }
 
     auto initial_suspend() noexcept {
@@ -112,7 +111,7 @@ struct Generator {
   }
 
  private:
-  Generator(handle h) : handle_(h) {  // should not have explicit keyword.
+  explicit Generator(handle h) : handle_(h) {
     cout << "Generator handle constructor" << endl;
   }
   handle handle_;
