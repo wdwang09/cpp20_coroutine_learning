@@ -1,6 +1,5 @@
 #include <coroutine>
 #include <iostream>
-#include <tuple>
 #include <utility>
 
 using std::cout;
@@ -133,7 +132,7 @@ Generator fib() {
     // If yield_value(a) return always, suspend itself;
     // else (return never) continue to run fib().
     cout << "fib() after co_yield" << endl;
-    std::tie(a, b) = std::make_tuple(b, a + b);
+    a = std::exchange(b, a + b);
   }
   cout << "fib() end" << endl;
   co_return;
