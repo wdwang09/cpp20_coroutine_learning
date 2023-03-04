@@ -9,30 +9,30 @@ namespace self {
 
 struct suspend_always {
   bool await_ready() const noexcept {
-    cout << "A await_ready false" << endl;
+    cout << "[A] await_ready false" << endl;
     // Suspend itself and run await_suspend().
     return false;
   }
 
   void await_suspend(std::coroutine_handle<>) const noexcept {
-    cout << "A await_suspend" << endl;
+    cout << "[A] await_suspend" << endl;
   }
 
-  void await_resume() const noexcept { cout << "A await_resume" << endl; }
+  void await_resume() const noexcept { cout << "[A] await_resume" << endl; }
 };
 
 struct suspend_never {
   bool await_ready() const noexcept {
-    cout << "N await_ready true" << endl;
+    cout << "[N] await_ready true" << endl;
     // Don't suspend. Don't run await_suspend(). Run await_resume().
     return true;
   }
 
   void await_suspend(std::coroutine_handle<>) const noexcept {
-    cout << "N await_suspend" << endl;
+    cout << "[N] await_suspend" << endl;
   }
 
-  void await_resume() const noexcept { cout << "N await_resume" << endl; }
+  void await_resume() const noexcept { cout << "[N] await_resume" << endl; }
 };
 
 }  // namespace self
@@ -45,30 +45,30 @@ struct Generator {
 
   struct promise_type {
     Generator get_return_object() {
-      cout << "get_return_object" << endl;
+      cout << "[promise_type::get_return_object]" << endl;
       return Generator(handle::from_promise(*this));
     }
 
     auto initial_suspend() noexcept {
-      cout << "initial_suspend" << endl;
+      cout << "[promise_type::initial_suspend]" << endl;
       return suspend_never{};
       // return suspend_always{};
     }
 
     auto final_suspend() noexcept {
-      cout << "final_suspend" << endl;
+      cout << "[promise_type::final_suspend]" << endl;
       return suspend_always{};
     }
 
     void unhandled_exception() {
-      cout << "unhandled_exception" << endl;
+      cout << "[promise_type::unhandled_exception]" << endl;
       std::terminate();
     }
 
-    void return_void() { cout << "return_void" << endl; }
+    void return_void() { cout << "[promise_type::return_void]" << endl; }
 
     auto yield_value(int value) {
-      cout << "yield_value(" << value << ")" << endl;
+      cout << "[promise_type::yield_value] value: " << value << "" << endl;
       current_value_ = value;
       return suspend_always{};
     }
@@ -77,18 +77,20 @@ struct Generator {
   };
 
   using handle = std::coroutine_handle<promise_type>;
-  void next() {
-    cout << "next" << endl;
+
+  void resume() {
+    cout << "[Generator] resume" << endl;
     handle_.resume();
   }
 
   bool done() {
-    cout << "done? " << handle_.done() << endl;
+    cout << "[Generator] done? " << handle_.done() << endl;
     return handle_.done();
   }
 
   int current_value() {
-    cout << "current_value: " << handle_.promise().current_value_ << endl;
+    cout << "[Generator] current_value: " << handle_.promise().current_value_
+         << endl;
     return handle_.promise().current_value_;
   }
 
@@ -98,49 +100,50 @@ struct Generator {
   // }
 
   ~Generator() {
-    cout << "Generator destructor begin" << endl;
+    cout << "[Generator] destructor begin" << endl;
     if (handle_) {
-      cout << "handle_.destroy()" << endl;
+      cout << "[Generator] handle_.destroy()" << endl;
       handle_.destroy();
       // Will coroutine_handle be auto-destroyed without the explicit
       // destructor?
       // coroutine_handle doesn't have explicit destructor.
     }
-    cout << "Generator destructor end" << endl;
+    cout << "[Generator] destructor end" << endl;
   }
 
  private:
   explicit Generator(handle h) : handle_(h) {
-    cout << "Generator handle constructor" << endl;
+    cout << "[Generator] Constructor with handle" << endl;
   }
   handle handle_;
 };
 
 Generator fib() {
-  // co_await initial_suspend:
-  // never (await_ready true) (Don't suspend itself, continue to run fib().)
-  // always (await_ready false) (suspend itself and continue to run main().)
-  cout << "fib() begin" << endl;
+  /// co_await initial_suspend:
+  /// never (await_ready true) (Don't suspend itself, continue to run fib().)
+  /// always (await_ready false) (suspend itself and continue to run main().)
+  cout << "[user] fib() begin" << endl;
   int a = 1, b = 1;
   while (a < 5) {
-    cout << "fib() before co_yield" << endl;
+    cout << "[user] fib() before co_yield"
+         << " a=" << a << " b=" << b << endl;
     co_yield a;
-    //  "co_yield a;" is equivalent to "co_await promise.yield_value(a);"
-    // co_yield's behavior is user-defined (by yield_value() function).
-    // Because it's a co_await, so yield_value() will return a Awaiter
-    // rather than int.
-    // If yield_value(a) return always, suspend itself;
-    // else (return never) continue to run fib().
-    cout << "fib() after co_yield" << endl;
+    /// "co_yield a;" is equivalent to "co_await promise.yield_value(a);"
+    /// co_yield's behavior is user-defined (by yield_value() function).
+    /// Because it's a co_await, so yield_value() will return a Awaiter
+    /// rather than int.
+    /// If yield_value(a) return always, suspend itself;
+    /// else (return never) continue to run fib().
+    cout << "[user] fib() after co_yield" << endl;
     a = std::exchange(b, a + b);
   }
-  cout << "fib() end" << endl;
+  cout << "[user] fib() end" << endl;
   co_return;
   // co_await final_suspend
 }
 
 int main() {
-  cout << "Main function starts." << endl;
+  cout << "[main] start" << endl;
   auto f = fib();
 
   // If initial_suspend() return suspend_never,
@@ -149,16 +152,16 @@ int main() {
   // If initial_suspend() return suspend_always,
   // it will not run fib() (start to run fib() when f.next()). 0 1 1 2 3
 
-  cout << "after auto f = fib();" << endl;
+  cout << "[main] after auto f = fib();" << endl;
   while (!f.done()) {
-    cout << "Main function before f.current_value()." << endl;
+    cout << "[main] before f.current_value()" << endl;
     auto value = f.current_value();
-    cout << "Main function after f.current_value()." << endl;
+    cout << "[main] after f.current_value()" << endl;
     cout << value << endl;
-    cout << "Main function before f.next()." << endl;
-    f.next();
-    cout << "Main function after f.next()." << endl;
+    cout << "[main] before f.resume()" << endl;
+    f.resume();
+    cout << "[main] after f.resume()" << endl;
   }
-  cout << "Main function ends." << endl;
+  cout << "[main] end" << endl;
   return 0;
 }

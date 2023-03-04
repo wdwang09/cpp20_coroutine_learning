@@ -13,6 +13,7 @@ struct maybe : public std::optional<T> {
 
   explicit maybe(maybe*& p) { p = this; }
 
+  // WARNING:
   // If this destructor isn't written explicitly,
   // CLANG (15.0.6) will return a wrong result (std::nullopt).
   // "= default" in CLANG cannot solve this problem.
