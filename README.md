@@ -11,4 +11,4 @@ References:
 Compilers:
 
 * g++ 12.2.0
-* clang++ 15.0.5
+* clang++ 15.0.7

@@ -8,6 +8,11 @@ using std::endl;
 // https://en.cppreference.com/w/cpp/coroutine/noop_coroutine
 
 template <typename T>
+auto addr(std::coroutine_handle<T> h) {
+  return (uint64_t)h.address() & (uint64_t)0xffff;
+}
+
+template <typename T>
 struct Task {
   struct promise_type {
     Task<T> get_return_object() {
@@ -27,12 +32,10 @@ struct Task {
 
         std::coroutine_handle<> await_suspend(
             std::coroutine_handle<promise_type> h) noexcept {
-          cout << ((uint64_t)h.address() & (uint64_t)0xfff)
-               << " in final: await_suspend" << endl;
+          cout << addr(h) << " in final: await_suspend" << endl;
           auto p = h.promise().parent_;
           if (p) {
-            cout << "resume " << ((uint64_t)p.address() & (uint64_t)0xfff)
-                 << endl;
+            cout << "resume " << addr(p) << endl;
             return p;  // resume parent coroutine
           }
           cout << "No parent coroutine." << endl;
@@ -64,15 +67,14 @@ struct Task {
 
       // co_await's return value
       T await_resume() {
-        cout << ((uint64_t)h_.address() & (uint64_t)0xfff)
-             << " in co_await: await_resume (to get return value)" << endl;
+        cout << addr(h_) << " in co_await: await_resume (to get return value)"
+             << endl;
         return std::move(h_.promise().result_);
       }
 
       auto await_suspend(std::coroutine_handle<> parent) {
-        cout << ((uint64_t)parent.address() & (uint64_t)0xfff) << " co_await "
-             << ((uint64_t)h_.address() & (uint64_t)0xfff);
-        cout << " await_suspend" << endl;
+        cout << addr(parent) << " co_await " << addr(h_) << " await_suspend"
+             << endl;
         h_.promise().parent_ = parent;
         return h_;
         // (A co_await B;) Resume B with B's await_resume(). A's handle is
@@ -89,13 +91,11 @@ struct Task {
   }
 
   explicit Task(std::coroutine_handle<promise_type> h) : h_(h) {
-    cout << "Task(" << ((uint64_t)h_.address() & (uint64_t)0xfff) << ")"
-         << endl;
+    cout << "Task(" << addr(h_) << ")" << endl;
   }
 
   ~Task() {
-    cout << "~Task(" << ((uint64_t)h_.address() & (uint64_t)0xfff) << ")"
-         << endl;
+    cout << "~Task(" << addr(h_) << ")" << endl;
     if (h_) h_.destroy();
   }
 

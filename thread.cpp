@@ -22,9 +22,9 @@ auto switch_to_new_thread(std::jthread& out) {
       return true;
     }
 
-    void await_suspend(std::coroutine_handle<> h) {
+    void await_suspend(std::coroutine_handle<> parent) {
       // same as "bool await_suspend(h) {...; return true;}"
-      // h is parent coroutine_handle
+      // parent is parent coroutine_handle
       std::jthread& out = *p_out;
       // https://en.cppreference.com/w/cpp/thread/jthread/joinable
       // Checks if the std::jthread object identifies an active thread of
@@ -32,8 +32,8 @@ auto switch_to_new_thread(std::jthread& out) {
       if (out.joinable()) {
         throw std::runtime_error("'out' shouldn't have an active thread.");
       }
-      out = std::jthread([h] {
-        h.resume();  // run await_resume();
+      out = std::jthread([parent] {
+        parent.resume();  // run await_resume();
         // Parent resumes in another thread.
       });
       cout << "New thread ID: " << out.get_id() << endl;
@@ -51,7 +51,7 @@ auto switch_to_new_thread(std::jthread& out) {
     }
 
     void await_resume() {
-      // The condition which will run await_Resume():
+      // The condition which will run await_resume():
       // await_ready() return true;
       // A await_suspend() runs arg_handle.resume() explicitly.
       // A bool await_suspend() return false.
